@@ -1,0 +1,24 @@
+body {
+  font-family: Arial, sans-serif;
+}
+
+.HomePage {
+  text-align: center;
+  margin-top: 50px;
+}
+
+input {
+  padding: 10px;
+  margin-right: 10px;
+  width: 300px;
+}
+
+button {
+  padding: 10px 20px;
+}
+
+img {
+  margin-top: 20px;
+  max-width: 100%;
+  height: auto;
+}

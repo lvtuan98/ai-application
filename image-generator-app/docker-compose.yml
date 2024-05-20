@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - ai-worker
+      - redis
+      - minio
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+
+  ai-worker:
+    build: ./ai-worker
+    ports:
+      - "5001:5001"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+
+  redis:
+    image: redis:6.2-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: server /data
+
+  celery_worker:
+    build: ./backend
+    command: celery -A celery_worker.celery worker --loglevel=info
+    depends_on:
+      - backend
+      - redis
+      - minio
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
