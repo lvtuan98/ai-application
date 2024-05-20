@@ -1,6 +1,0 @@
-Flask==2.0.2
-requests==2.26.0
-celery==5.2.1
-redis==4.0.2
-minio==7.1.0
-Werkzeug==2.2.2
