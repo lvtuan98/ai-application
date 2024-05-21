@@ -2,7 +2,7 @@ import os
 
 class Config:
     DEBUG = True
-    AI_WORKER_URL = 'http://ai-worker:5001'
+    AI_WORKER_URL = 'http://localhost:5001'
     CELERY_BROKER_URL = 'redis://redis:6379/0'
     CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
     MINIO_ENDPOINT = 'minio:9000'

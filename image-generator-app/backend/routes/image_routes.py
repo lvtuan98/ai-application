@@ -7,7 +7,9 @@ image_bp = Blueprint('image_bp', __name__)
 def generate_image():
     try:
         data = request.get_json()
+        print(data)
         task = generate_image_task.apply_async(args=[data])
+        print("task_id", task.id)
         return jsonify({"task_id": task.id}), 202
     except Exception as e:
         return {"error": str(e)}, 500

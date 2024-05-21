@@ -1,8 +1,11 @@
 from flask import Flask, request, jsonify
 from utils.image_processor import create_image
 from io import BytesIO
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5002"])
+
 
 @app.route('/generate', methods=['POST'])
 def generate_image():

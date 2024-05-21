@@ -1,4 +1,4 @@
-from celery import Celery
+from celery import current_app as current_celery_app
 from flask import current_app
 from minio import Minio
 from minio.error import S3Error
@@ -8,11 +8,13 @@ import uuid
 import os
 
 
-app = Celery()
+# app = Celery()
 
-@app.task
+@current_celery_app.task
 def generate_image_task(data):
+    print('hereeeeee')
     try:
+        print("dddd", data)
         response = requests.post(f"{current_app.config['AI_WORKER_URL']}/generate", json=data)
         image_data = response.content
 
