@@ -7,7 +7,7 @@ app = create_app()
 @app.route('/', methods = ['GET', 'POST']) 
 def home(): 
   if(request.method == 'GET'): 
-      data = "hello world"
+      data = "This is Backend"
       return jsonify({'data': data}) 
 
 

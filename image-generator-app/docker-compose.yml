@@ -14,7 +14,7 @@ services:
       MINIO_SECRET_KEY: minio123
 
   ai-worker:
-    build: ./ai-worker
+    build: ./ai_worker
     ports:
       - "5001:5001"
 
