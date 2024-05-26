@@ -1,6 +1,7 @@
 */__pycache__/
 */*/__pycache__/
 */*/*/__pycache__/
+.vscode/
 image-generator-app/data/
 image-generator-app/frontend/node_modules/
 image-generator-app/.env
