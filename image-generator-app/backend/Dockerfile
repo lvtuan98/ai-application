@@ -7,4 +7,9 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "--workers", "3", "--bind", "0.0.0.0:8000", "backend.wsgi:application"]
+ARG BE_HOST
+ARG BE_PORT
+ENV BE_HOST $BE_HOST
+ENV BE_PORT $BE_PORT
+
+CMD ["gunicorn", "--workers", "3", "--bind", "${BE_HOST}:${BE_PORT}", "backend.wsgi:application"]

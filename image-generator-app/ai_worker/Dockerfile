@@ -7,4 +7,9 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "--workers", "3", "--bind", "0.0.0.0:5001", "ai_worker.wsgi:application"]
+ARG AI_WORKER_HOST
+ARG AI_WORKER_PORT
+ENV AI_WORKER_HOST $AI_WORKER_HOST
+ENV AI_WORKER_PORT $AI_WORKER_PORT
+
+CMD ["gunicorn", "--workers", "3", "--bind", "${AI_WORKER_HOST}:${AI_WORKER_PORT}", "ai_worker.wsgi:application"]

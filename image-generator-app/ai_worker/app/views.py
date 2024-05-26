@@ -1,6 +1,7 @@
 # Create your views here.
 from django.http import JsonResponse
 from django.views import View
+import json
 from .utils.image_processor import generate_image
 
 class GenerateImageView(View):
