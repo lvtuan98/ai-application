@@ -42,7 +42,7 @@ def task_status(task_id):
     else:
         response = {
             'state': task.state,
-            'status': str(task.info),
+            'result': str(task.info),
         }
     print("response", response, flush=True)
     return jsonify(response)   
