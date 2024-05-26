@@ -1,3 +1,4 @@
-cd /home/tony/workspace/ai-application/image-generator-app/frontend
+# cp .env frontend/
+cd frontend
 
 npm start

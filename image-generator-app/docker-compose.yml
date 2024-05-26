@@ -1,41 +1,79 @@
 version: '3.8'
 
+networks:
+    imgen-network:
+      driver: bridge
+
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    # command: python run.py
+    env_file:
+      - .env
+    networks:
+      - imgen-network
     ports:
-      - "5000:5000"
+      - "${BE_PORT}:${BE_PORT}"
     depends_on:
       - ai-worker
       - redis
       - minio
     environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
 
   ai-worker:
-    build: ./ai_worker
+    build:
+      context: ./ai_worker
+      dockerfile: Dockerfile
+    restart: always
+    # command: python worker.py
+    env_file:
+      - .env
+    networks:
+      - imgen-network
     ports:
-      - "5001:5001"
+      - "${AI_WORKER_PORT}:${AI_WORKER_PORT}"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    # command: nginx -g daemon off;
+    env_file:
+      - .env
+    networks:
+      - imgen-network
     ports:
       - "3000:80"
 
   redis:
     image: redis:6.2-alpine
+    networks:
+      - imgen-network
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
 
   minio:
     image: minio/minio
+    env_file:
+      - .env
+    networks:
+      - imgen-network
     ports:
-      - "9000:9000"
+      - "${MINIO_PORT}:${MINIO_PORT}"
+      - "${MINIO_SECOND_PORT}:${MINIO_SECOND_PORT}"
     environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
-    command: server /data
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # command: server /data
+    volumes:
+      - "./data/volume/minio:/data"
+    command: server /data --address ":${MINIO_PORT}" --console-address ":${MINIO_SECOND_PORT}"
 
   celery_worker:
     build: ./backend
@@ -44,6 +82,10 @@ services:
       - backend
       - redis
       - minio
+    env_file:
+      - .env
+    networks:
+      - imgen-network
     environment:
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}

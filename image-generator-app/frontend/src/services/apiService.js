@@ -9,16 +9,13 @@
 //   const blob = await response.blob();
 //   return URL.createObjectURL(blob);
 // };
-
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5002';
+const API_BE_URL = process.env.REACT_APP_BE_URL;
 
 export const generateImage = async (data) => {
     try {
-        console.log('checkkkkk', data);
-        const response = await axios.post(`${API_BASE_URL}/api/images/generate`, {"data": data});
-        console.log(response.data);
+        const response = await axios.post(`${API_BE_URL}/generate`, {"data": data});
         return response.data;
     } catch (error) {
         console.error('Error generating image:', error);
@@ -28,7 +25,9 @@ export const generateImage = async (data) => {
 
 export const getTaskStatus = async (taskId) => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/api/images/status/${taskId}/`);
+        console.log("api:", `${API_BE_URL}/status/${taskId}`);
+        const response = await axios.get(`${API_BE_URL}/status/${taskId}`);
+        console.log("getTaskStatus", response);
         return response.data;
     } catch (error) {
         console.error('Error fetching task status:', error);
