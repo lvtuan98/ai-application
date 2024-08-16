@@ -1,0 +1,17 @@
+FROM python:3.10.10-buster
+
+ARG http_proxy
+ARG https_proxy
+ENV http_proxy=${http_proxy}
+ENV https_proxy=${https_proxy}
+
+ARG UID=1000
+ARG GID=1000
+ARG USERNAME=idpdocgen
+
+RUN apt-get update && apt-get install -y sudo poppler-utils ffmpeg libsm6 libxext6
+RUN apt install -y postgresql gcc musl-dev bash gettext
+RUN pip install --upgrade pip && pip install uvicorn gunicorn Celery --no-cache-dir
+
+COPY ./requirements.dev.txt /tmp/requirements.txt
+RUN pip --default-timeout=1000 install -r /tmp/requirements.txt --no-cache-dir 

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Bounding Box Selector</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Select a Bounding Box</h1>
+    <input type="file" id="imageInput">
+    <canvas id="canvas"></canvas>
+    <button id="submit">Submit</button>
+
+    <script>
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let startX, startY, endX, endY;
+        let isDrawing = false;
+        let image;
+
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                image = new Image();
+                image.onload = function() {
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    ctx.drawImage(image, 0, 0);
+                };
+                image.src = event.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        canvas.addEventListener('mousedown', function(e) {
+            startX = e.offsetX;
+            startY = e.offsetY;
+            isDrawing = true;
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (isDrawing) {
+                endX = e.offsetX;
+                endY = e.offsetY;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(image, 0, 0);
+                ctx.strokeStyle = 'green';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+            }
+        });
+
+        canvas.addEventListener('mouseup', function(e) {
+            isDrawing = false;
+        });
+
+        document.getElementById('submit').addEventListener('click', function() {
+            let formData = new FormData();
+            formData.append('image', document.getElementById('imageInput').files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filepath: data.filepath,
+                        start_point: [startX, startY],
+                        end_point: [endX, endY]
+                    })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    alert(`Bounding Box Coordinates:\nStart: ${result.start_point}\nEnd: ${result.end_point}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

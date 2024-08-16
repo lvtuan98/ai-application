@@ -1,0 +1,156 @@
+version: "3.0"
+networks:
+  docgen-network:
+    driver: bridge
+
+services:
+  docgen-backend:
+    build:
+      # context: ./backend
+      dockerfile: Dockerfile
+    privileged: true
+    env_file:
+      - .env
+    environment:
+      - WEIGHT_DIR=/models/weights
+      # - PYTHONPATH=${PYTHONPATH}:/workspace/backend:/workspace/idp-ai  # For import module
+      # - PYTHONUNBUFFERED=1  # For show print log
+      - BACKEND_SERVER=${BASE_URL}
+    networks:
+      - docgen-network
+    volumes:
+      - ./backend:/workspace
+      - ${HOST_MEDIA_FOLDER}:${MEDIA_ROOT}
+      - ${PATH_WEIGHT_DIR}:/models/weights
+    ports:
+      - "3198:3198"
+      - "3110:3110"
+
+    working_dir: /workspace
+    restart: always
+    command: sh -c "python manage.py collectstatic --no-input && 
+                    python manage.py migrate &&
+                    python manage.py compilemessages &&
+                    gunicorn docgen.asgi:application -k uvicorn.workers.UvicornWorker -b 0.0.0.0:${BASE_PORT} &&
+                    sleep 10 && python manage.py crontab add"
+    depends_on:
+      docgen-database:
+        condition: service_started
+      docgen-rabbitmq:
+        condition: service_started
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            device_ids: ['0', '1']
+            capabilities: [gpu]
+
+  docgen-workers:
+    build:
+      # content: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DB_PORT=${DB_INTERNAL_PORT}
+    networks:
+      - docgen-network
+    restart: always
+    depends_on:
+      docgen-database:
+        condition: service_started
+      docgen-rabbitmq:
+        condition: service_started
+    volumes:
+      - ./backend:/workspace
+      - ${HOST_MEDIA_FOLDER}:${MEDIA_ROOT}
+      - ./data/logs:/data/logs
+    working_dir: /workspace
+    command: sh -c "celery -A docgen_api.celery_worker.worker worker --loglevel=debug --logfile=/data/logs/celery_api.log"
+
+  docgen-ai-workers:
+    build:
+      # content: ./ai-worker
+      dockerfile: Dockerfile
+    restart: always
+    shm_size: 10gb
+    networks:
+      - docgen-network
+    privileged: true
+    env_file:
+      - .env
+    environment:
+      - WEIGHT_DIR=/models/weights
+    volumes:
+      - ./ai-worker:/workspace
+      - ${PATH_WEIGHT_DIR}:/models/weights
+      - ${HOST_MEDIA_FOLDER}:${MEDIA_ROOT}
+      - ./data/logs:/data/logs
+    working_dir: /workspace
+    command: sh -c 'celery -A celery_worker.doc_gen.worker worker --loglevel=INFO --pool=solo'
+    depends_on:
+      docgen-database:
+        condition: service_started
+      docgen-rabbitmq:
+        condition: service_started
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              device_ids:
+                - "1"
+
+  docgen-database:
+    mem_reservation: 500m
+    mem_limit: 1g
+    image: postgres:14.7-alpine
+    volumes:
+      - ./data/postgresql-data:/var/lib/postgresql/data
+    working_dir: /app
+    # ports:
+    #   - 7532:5432
+    networks:
+      - docgen-network
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_SCHEMA}
+
+  docgen-rabbitmq:
+    env_file:
+      - .env
+    # ports:
+    #   - 5677:5672
+    mem_reservation: 600m
+    mem_limit: 4g
+    restart: always
+    image: rabbitmq:3.10-alpine
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq/mnesia
+    working_dir: /app
+    networks:
+      - docgen-network
+
+  # docgen-redis:
+  #   image: redis:6.2.6-alpine
+  #   mem_reservation: 100m
+  #   mem_limit: 500m
+  #   # ports:
+  #   #   - 6399:6379
+  #   networks:
+  #     - docgen-network
+  #   volumes:
+  #     - ./data/redis-data:/data
+  #   restart: always
+  #   working_dir: /app
+
+volumes:
+  rabbitmq-data:

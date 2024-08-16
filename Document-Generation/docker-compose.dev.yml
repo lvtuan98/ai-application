@@ -1,0 +1,94 @@
+version: "3.0"
+networks:
+  docgen-network:
+    driver: bridge
+
+services:
+  docgen-dev:
+    # image: docgen-devcontainer
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    privileged: true
+    env_file:
+      - .env_dev
+    environment:
+      - WEIGHT_DIR=/models/weights
+      - PYTHONPATH=${PYTHONPATH}:/workspace/backend:/workspace/ai-worker  # For import module
+      - PYTHONUNBUFFERED=1  # For show print log
+      - BACKEND_SERVER=${BASE_URL}
+      - DJANGO_SETTINGS_MODULE=docgen.settings
+    networks:
+      - docgen-network
+    volumes:
+      - ./:/workspace
+      - ${HOST_MEDIA_FOLDER}:${MEDIA_ROOT}
+      - ${PATH_WEIGHT_DIR}:/models/weights
+    ports:
+      - "31980:31980"
+      - "31981:31981"
+
+    working_dir: /workspace
+    depends_on:
+      docgen-database-dev:
+        condition: service_started
+      docgen-rabbitmq-dev:
+        condition: service_started
+    # command: sh -c "bash scripts/run_api.sh && 
+    #                 celery -A ai-worker.celery_worker.doc_gen.worker worker --loglevel=INFO --pool=solo && 
+    #                 celery -A backend.docgen_api.celery_worker.worker worker --loglevel=INFO --pool=solo"
+    command: sh -c "bash scripts/non_stop.sh"
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            device_ids: ['1']
+            capabilities: [gpu]
+
+  docgen-database-dev:
+    mem_reservation: 500m
+    mem_limit: 1g
+    image: postgres:14.7-alpine
+    volumes:
+      - ./data_dev/postgresql-data:/var/lib/postgresql/data
+    working_dir: /app
+    # ports:
+    #   - 7532:5432
+    networks:
+      - docgen-network
+    env_file:
+      - .env_dev
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_SCHEMA}
+  docgen-rabbitmq-dev:
+    env_file:
+        - .env
+    # ports:
+    #   - 5677:5672
+    mem_reservation: 600m
+    mem_limit: 4g
+    restart: always
+    image: rabbitmq:3.10-alpine
+    volumes:
+      - rabbitmq-data-dev:/var/lib/rabbitmq/mnesia
+    working_dir: /app
+    networks:
+      - docgen-network
+
+  # docgen-redis-dev:
+  #   image: redis:6.2.6-alpine
+  #   mem_reservation: 100m
+  #   mem_limit: 500m
+  #   # ports:
+  #   #   - 6399:6379
+  #   networks:
+  #     - docgen-network
+  #   volumes:
+  #     - ./data_dev/redis-data:/data
+  #   restart: always
+  #   working_dir: /app
+volumes:
+  rabbitmq-data-dev:
